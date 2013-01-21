@@ -1,0 +1,236 @@
+// Load modules
+
+var Dgram = require('dgram');
+var Chai = require('chai');
+var Sntp = process.env.TEST_COV ? require('../lib-cov') : require('../lib');
+
+
+// Declare internals
+
+var internals = {};
+
+
+// Test shortcuts
+
+var expect = Chai.expect;
+
+
+describe('SNTP', function () {
+
+    it('returns consistent result over multiple tries', function (done) {
+
+        Sntp.time(function (err, time) {
+
+            expect(err).to.not.exist;
+            expect(time).to.exist;
+            var t1 = time.t;
+
+            Sntp.time(function (err, time) {
+
+                expect(err).to.not.exist;
+                expect(time).to.exist;
+                var t2 = time.t;
+                expect(Math.abs(t1 - t2)).is.below(200);
+                done();
+            });
+        });
+    });
+
+    it('resolves reference IP', function (done) {
+
+        Sntp.time({ host: 'ntp.exnet.com', resolveReference: true }, function (err, time) {
+
+            expect(err).to.not.exist;
+            expect(time).to.exist;
+            expect(time.referenceHost).to.exist;
+            done();
+        });
+    });
+
+    it('times out on no response', function (done) {
+
+        Sntp.time({ port: 124, timeout: 100 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time).to.not.exist;
+            expect(err.message).to.equal('Timeout');
+            done();
+        });
+    });
+
+    it('times out on no response', function (done) {
+
+        Sntp.time({ host: 'error', timeout: 10000 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time).to.not.exist;
+            expect(err.message).to.equal('getaddrinfo ENOENT');
+            done();
+        });
+    });
+
+    it('fails on bad response buffer size', function (done) {
+
+        var server = Dgram.createSocket('udp4');
+        server.on('message', function (message, remote) {
+            var message = new Buffer(10);
+            server.send(message, 0, message.length, remote.port, remote.address, function (err, bytes) {
+
+                server.close();
+            });
+        });
+
+        server.bind(49123);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(err.message).to.equal('Invalid server response');
+            done();
+        });
+    });
+
+    var messup = function (bytes) {
+
+        var server = Dgram.createSocket('udp4');
+        server.on('message', function (message, remote) {
+
+            var message = new Buffer([
+                0x24, 0x01, 0x00, 0xe3,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x41, 0x43, 0x54, 0x53,
+                0xd4, 0xa8, 0x2d, 0xc7,
+                0x1c, 0x5d, 0x49, 0x1b,
+                0xd4, 0xa8, 0x2d, 0xe6,
+                0x67, 0xef, 0x9d, 0xb2,
+                0xd4, 0xa8, 0x2d, 0xe6,
+                0x71, 0xed, 0xb5, 0xfb,
+                0xd4, 0xa8, 0x2d, 0xe6,
+                0x71, 0xee, 0x6c, 0xc5
+            ]);
+
+            for (var i = 0, il = bytes.length; i < il; ++i) {
+                message[bytes[i][0]] = bytes[i][1];
+            }
+
+            server.send(message, 0, message.length, remote.port, remote.address, function (err, bytes) {
+
+                server.close();
+            });
+        });
+
+        server.bind(49123);
+    };
+
+    it('fails on bad version', function (done) {
+
+        messup([[0, (0 << 6) + (3 << 3) + (4 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time.version).to.equal(3);
+            expect(err.message).to.equal('Invalid server response');
+            done();
+        });
+    });
+
+    it('fails on bad originate timestamp and alarm li', function (done) {
+
+        messup([[0, (3 << 6) + (4 << 3) + (4 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(err.message).to.equal('Wrong originate timestamp');
+            expect(time.leapIndicator).to.equal('alarm');
+            done();
+        });
+    });
+
+    it('returns time with death stratum and last61 li', function (done) {
+
+        messup([[0, (1 << 6) + (4 << 3) + (4 << 0)], [1, 0]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(time.stratum).to.equal('death');
+            expect(time.leapIndicator).to.equal('last-minute-61');
+            done();
+        });
+    });
+
+    it('returns time with reserved stratum and last59 li', function (done) {
+
+        messup([[0, (2 << 6) + (4 << 3) + (4 << 0)], [1, 0x1f]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(time.stratum).to.equal('reserved');
+            expect(time.leapIndicator).to.equal('last-minute-59');
+            done();
+        });
+    });
+
+    it('fails on bad mode (symmetric-active)', function (done) {
+
+        messup([[0, (0 << 6) + (4 << 3) + (1 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time.mode).to.equal('symmetric-active');
+            done();
+        });
+    });
+
+    it('fails on bad mode (symmetric-passive)', function (done) {
+
+        messup([[0, (0 << 6) + (4 << 3) + (2 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time.mode).to.equal('symmetric-passive');
+            done();
+        });
+    });
+
+    it('fails on bad mode (client)', function (done) {
+
+        messup([[0, (0 << 6) + (4 << 3) + (3 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time.mode).to.equal('client');
+            done();
+        });
+    });
+
+    it('fails on bad mode (broadcast)', function (done) {
+
+        messup([[0, (0 << 6) + (4 << 3) + (5 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time.mode).to.equal('broadcast');
+            done();
+        });
+    });
+
+    it('fails on bad mode (reserved)', function (done) {
+
+        messup([[0, (0 << 6) + (4 << 3) + (6 << 0)]]);
+
+        Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+            expect(err).to.exist;
+            expect(time.mode).to.equal('reserved');
+            done();
+        });
+    });
+});
+
