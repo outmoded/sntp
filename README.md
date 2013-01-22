@@ -55,3 +55,16 @@ Sntp.offset(function (err, offset) {
 });
 ```
 
+To set a background offset refresh, start the interval and use the provided now() method. If for any reason the
+client fails to obtain an up-to-date offset, the current system clock is used.
+
+```javascript
+var before = Sntp.now();                    // System time without offset
+
+Sntp.start(function () {
+
+    var now = Sntp.now();                   // With offset
+    Sntp.stop();
+});
+```
+
