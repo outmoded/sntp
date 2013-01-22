@@ -235,7 +235,7 @@ describe('SNTP', function () {
 
     it('gets the current offset', function (done) {
 
-        Sntp.offset({}, function (err, offset) {
+        Sntp.offset(function (err, offset) {
 
             expect(err).to.not.exist;
             expect(offset).to.not.equal(0);
@@ -245,7 +245,7 @@ describe('SNTP', function () {
 
     it('gets the current offset from cache', function (done) {
 
-        Sntp.offset({}, function (err, offset) {
+        Sntp.offset(function (err, offset) {
 
             expect(err).to.not.exist;
             expect(offset).to.not.equal(0);

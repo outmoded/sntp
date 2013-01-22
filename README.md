@@ -4,7 +4,7 @@ An SNTP v4 client (RFC4330) for node. Simpy connects to the NTP or SNTP server r
 along with the roundtrip duration and clock offset. To adjust the local time to the NTP time, add the returned `t` offset
 to the local time.
 
-Current version: **0.1.0**
+Current version: **0.1.1**
 
 [![Build Status](https://secure.travis-ci.org/hueniverse/sntp.png)](http://travis-ci.org/hueniverse/sntp)
 
@@ -33,6 +33,25 @@ Sntp.time(options, function (err, time) {
 
     console.log('Local clock is off by: ' + time.t + ' milliseconds');
     process.exit(0);
+});
+```
+
+If an application needs to maintain continuous time synchronization, the module provides a stateful method for
+querying the current offset only when the last one is too old (defaults to daily).
+
+```javascript
+// Request offset once
+
+Sntp.offset(function (err, offset) {
+
+    console.log(offset);                    // New (served fresh)
+
+    // Request offset again
+
+    Sntp.offset(function (err, offset) {
+
+        console.log(offset);                // Identical (served from cache)
+    });
 });
 ```
 
