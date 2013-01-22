@@ -232,5 +232,41 @@ describe('SNTP', function () {
             done();
         });
     });
+
+    it('gets the current offset', function (done) {
+
+        Sntp.offset({}, function (err, offset) {
+
+            expect(err).to.not.exist;
+            expect(offset).to.not.equal(0);
+            done();
+        });
+    });
+
+    it('gets the current offset from cache', function (done) {
+
+        Sntp.offset({}, function (err, offset) {
+
+            expect(err).to.not.exist;
+            expect(offset).to.not.equal(0);
+            var offset1 = offset;
+            Sntp.offset({}, function (err, offset) {
+
+                expect(err).to.not.exist;
+                expect(offset).to.equal(offset1);
+                done();
+            });
+        });
+    });
+
+    it('fails getting the current offset on invalid server', function (done) {
+
+        Sntp.offset({ host: 'error' }, function (err, offset) {
+
+            expect(err).to.exist;
+            expect(offset).to.equal(0);
+            done();
+        });
+    });
 });
 

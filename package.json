@@ -1,7 +1,7 @@
 {
   "name": "sntp",
   "description": "SNTP Client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Eran Hammer <eran@hueniverse.com> (http://hueniverse.com)",
   "contributors": [],
   "repository": "git://github.com/hueniverse/sntp",
@@ -15,6 +15,7 @@
     "node": ">=0.8.0"
   },
   "dependencies": {
+    "hoek": "0.0.x"
   },
   "devDependencies": {
     "mocha": "1.x.x",
