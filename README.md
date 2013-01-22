@@ -1,7 +1,8 @@
 # sntp
 
 An SNTP v4 client (RFC4330) for node. Simpy connects to the NTP or SNTP server requested and returns the server time
-along with the roundtrip duration and clock offset.
+along with the roundtrip duration and clock offset. To adjust the local time to the NTP time, add the returned `t` offset
+to the local time.
 
 Current version: **0.1.0**
 
