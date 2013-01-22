@@ -2,7 +2,7 @@ REPORTER = dot
 
 test: 
 	@#lib-cov
-	@NODE_ENV=test ./node_modules/.bin/mocha --recursive --reporter $(REPORTER) --ignore-leaks --timeout 3000
+	@NODE_ENV=test ./node_modules/.bin/mocha --recursive --reporter $(REPORTER) --ignore-leaks --timeout 5000
 	@#$(MAKE) rm-lib-cov
 
 tests: test
