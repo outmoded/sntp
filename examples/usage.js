@@ -18,6 +18,7 @@ Sntp.time(options, function (err, time) {
         process.exit(1);
     }
 
+    console.log(time);
     console.log('Local clock is off by: ' + time.t + ' milliseconds');
     process.exit(0);
 });
