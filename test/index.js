@@ -2,7 +2,7 @@
 
 var Dgram = require('dgram');
 var Chai = require('chai');
-var Sntp = process.env.TEST_COV ? require('../lib-cov') : require('../lib');
+var Sntp = require('../lib');
 
 
 // Declare internals
@@ -66,7 +66,7 @@ describe('SNTP', function () {
 
                 expect(err).to.exist;
                 expect(time).to.not.exist;
-                expect(err.message).to.equal('getaddrinfo ENOENT');
+                expect(err.message).to.equal('getaddrinfo ENOTFOUND');
                 done();
             });
         });
