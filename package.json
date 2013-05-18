@@ -1,7 +1,7 @@
 {
   "name": "sntp",
   "description": "SNTP Client",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Eran Hammer <eran@hueniverse.com> (http://hueniverse.com)",
   "contributors": [],
   "repository": "git://github.com/hueniverse/sntp",
