@@ -106,11 +106,6 @@ describe('SNTP', function () {
                 });
             });
 
-            server.on('error', function (err) {
-
-                console.log('server', err);
-            });
-
             server.bind(49123);
 
             Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
