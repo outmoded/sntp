@@ -1,5 +1,6 @@
 // Load modules
 
+var Dns = require('dns');
 var Dgram = require('dgram');
 var Lab = require('lab');
 var Sntp = require('../lib');
@@ -53,6 +54,24 @@ describe('SNTP', function () {
             });
         });
 
+        it('fails to resolve reference IP', { parallel: false }, function (done) {
+
+            var orig = Dns.reverse;
+            Dns.reverse = function (ip, callback) {
+
+                Dns.reverse = orig;
+                return callback(new Error('Missing IP'));
+            };
+
+            Sntp.time({ host: 'ntp.exnet.com', resolveReference: true }, function (err, time) {
+
+                expect(err).to.exist;
+                expect(time).to.exist;
+                expect(time.referenceHost).to.not.exist;
+                done();
+            });
+        });
+
         it('times out on no response', function (done) {
 
             Sntp.time({ port: 124, timeout: 100 }, function (err, time) {
@@ -64,14 +83,14 @@ describe('SNTP', function () {
             });
         });
 
-        it('errors on error event', function (done) {
+        it('errors on error event', { parallel: false }, function (done) {
 
             var orig = Dgram.createSocket;
             Dgram.createSocket = function (type) {
 
                 Dgram.createSocket = orig;
                 var socket = Dgram.createSocket(type);
-                process.nextTick(function () { socket.emit('error', new Error('Fake')) });
+                setImmediate(function () { socket.emit('error', new Error('Fake')) });
                 return socket;
             };
 
@@ -80,6 +99,24 @@ describe('SNTP', function () {
                 expect(err).to.exist;
                 expect(time).to.not.exist;
                 expect(err.message).to.equal('Fake');
+                done();
+            });
+        });
+
+        it('errors on incorrect sent size', { parallel: false }, function (done) {
+
+            var orig = Dgram.Socket.prototype.send;
+            Dgram.Socket.prototype.send = function (buf, offset, length, port, address, callback) {
+
+                Dgram.Socket.prototype.send = orig;
+                return callback(null, 40);
+            };
+
+            Sntp.time(function (err, time) {
+
+                expect(err).to.exist;
+                expect(time).to.not.exist;
+                expect(err.message).to.equal('Could not send entire message');
                 done();
             });
         });
@@ -157,6 +194,30 @@ describe('SNTP', function () {
 
                 expect(err).to.exist;
                 expect(time.version).to.equal(3);
+                expect(err.message).to.equal('Invalid server response');
+                done();
+            });
+        });
+
+        it('fails on bad originateTimestamp', function (done) {
+
+            messup([[24, 0x83], [25, 0xaa], [26, 0x7e], [27, 0x80], [28, 0], [29, 0], [30, 0], [31, 0]]);
+
+            Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+                expect(err).to.exist;
+                expect(err.message).to.equal('Invalid server response');
+                done();
+            });
+        });
+
+        it('fails on bad receiveTimestamp', function (done) {
+
+            messup([[32, 0x83], [33, 0xaa], [34, 0x7e], [35, 0x80], [36, 0], [37, 0], [38, 0], [39, 0]]);
+
+            Sntp.time({ host: 'localhost', port: 49123 }, function (err, time) {
+
+                expect(err).to.exist;
                 expect(err.message).to.equal('Invalid server response');
                 done();
             });
@@ -283,6 +344,38 @@ describe('SNTP', function () {
 
                     expect(err).to.not.exist;
                     expect(offset).to.equal(offset1);
+                    done();
+                });
+            });
+        });
+
+        it('gets the new offset on different server', function (done) {
+
+            Sntp.offset(function (err, offset) {
+
+                expect(err).to.not.exist;
+                expect(offset).to.not.equal(0);
+                var offset1 = offset;
+                Sntp.offset({ host: 'nist1-sj.ustiming.org' }, function (err, offset) {
+
+                    expect(err).to.not.exist;
+                    expect(offset).to.not.equal(offset1);
+                    done();
+                });
+            });
+        });
+
+        it('gets the new offset on different server', function (done) {
+
+            Sntp.offset(function (err, offset) {
+
+                expect(err).to.not.exist;
+                expect(offset).to.not.equal(0);
+                var offset1 = offset;
+                Sntp.offset({ port: 123 }, function (err, offset) {
+
+                    expect(err).to.not.exist;
+                    expect(offset).to.not.equal(offset1);
                     done();
                 });
             });
