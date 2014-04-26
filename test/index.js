@@ -54,24 +54,6 @@ describe('SNTP', function () {
             });
         });
 
-        it('fails to resolve reference IP', { parallel: false }, function (done) {
-
-            var orig = Dns.reverse;
-            Dns.reverse = function (ip, callback) {
-
-                Dns.reverse = orig;
-                return callback(new Error('Missing IP'));
-            };
-
-            Sntp.time({ host: 'ntp.exnet.com', resolveReference: true }, function (err, time) {
-
-                expect(err).to.exist;
-                expect(time).to.exist;
-                expect(time.referenceHost).to.not.exist;
-                done();
-            });
-        });
-
         it('times out on no response', function (done) {
 
             Sntp.time({ port: 124, timeout: 100 }, function (err, time) {
