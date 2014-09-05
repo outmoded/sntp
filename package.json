@@ -1,7 +1,7 @@
 {
   "name": "sntp",
   "description": "SNTP Client",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "Eran Hammer <eran@hammer.io> (http://hueniverse.com)",
   "contributors": [],
   "repository": "git://github.com/hueniverse/sntp",
@@ -18,7 +18,7 @@
     "hoek": "2.x.x"
   },
   "devDependencies": {
-    "lab": "^3.1.x"
+    "lab": "4.x.x"
   },
   "scripts": {
     "test": "make test-cov"
