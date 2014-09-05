@@ -110,7 +110,7 @@ describe('SNTP', function () {
 
                 expect(err).to.exist;
                 expect(time).to.not.exist;
-                expect(err.message).to.equal('getaddrinfo EIO');
+                expect(err.message).to.contain('getaddrinfo');
                 done();
             });
         });
