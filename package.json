@@ -5,7 +5,7 @@
   "author": "Eran Hammer <eran@hammer.io> (http://hueniverse.com)",
   "repository": {
     "type": "git",
-    "url": "git://github.com/hapijs/hapi"
+    "url": "git://github.com/hueniverse/sntp"
   },
   "main": "lib/index.js",
   "keywords": [
