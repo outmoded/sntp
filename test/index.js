@@ -409,7 +409,21 @@ describe('SNTP', () => {
             });
         });
 
-        it('starts twice', (done) => {
+        it('starts twice', { parallel: false }, (done, onCleanup) => {
+
+            const orig = Date.now;
+            Date.now = () => {
+
+                return orig() - 1;
+            };
+
+            onCleanup((next) => {
+
+                Date.now = orig;
+                return next();
+            });
+
+            Sntp.stop();
 
             Sntp.start(() => {
 
