@@ -24,8 +24,8 @@
     "lab": "10.x.x"
   },
   "scripts": {
-    "test": "lab -a code -t 100 -L -m 10000",
-    "test-cov-html": "lab -a code -r html -o coverage.html -m 10000"
+    "test": "lab -a code -t 100 -L -m 20000",
+    "test-cov-html": "lab -a code -r html -o coverage.html -m 20000"
   },
   "license": "BSD-3-Clause"
 }
