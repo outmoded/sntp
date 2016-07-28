@@ -118,16 +118,16 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad response buffer size', (done) => {
+        it('fails on bad response buffer size', (done, onCleanup) => {
 
             const server = Dgram.createSocket('udp4');
+            onCleanup((next) => server.close(next));
             server.on('message', (message, remote) => {
 
                 const msg = new Buffer(10);
                 server.send(msg, 0, msg.length, remote.port, remote.address, (err, bytes) => {
 
                     expect(err).to.not.exist();
-                    server.close();
                 });
             });
 
@@ -141,9 +141,10 @@ describe('SNTP', () => {
             });
         });
 
-        const messup = function (bytes) {
+        const messup = function (bytes, onCleanup) {
 
             const server = Dgram.createSocket('udp4');
+            onCleanup((next) => server.close(next));
             server.on('message', (message, remote) => {
 
                 const msg = new Buffer([
@@ -168,16 +169,15 @@ describe('SNTP', () => {
                 server.send(msg, 0, msg.length, remote.port, remote.address, (err, bytes2) => {
 
                     expect(err).to.not.exist();
-                    server.close();
                 });
             });
 
             server.bind(49123);
         };
 
-        it('fails on bad version', (done) => {
+        it('fails on bad version', (done, onCleanup) => {
 
-            messup([[0, (0 << 6) + (3 << 3) + (4 << 0)]]);
+            messup([[0, (0 << 6) + (3 << 3) + (4 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -188,21 +188,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad originateTimestamp', (done) => {
+        it('fails on bad originateTimestamp', (done, onCleanup) => {
 
-            messup([[24, 0x83], [25, 0xaa], [26, 0x7e], [27, 0x80], [28, 0], [29, 0], [30, 0], [31, 0]]);
-
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(err.message).to.equal('Invalid server response');
-                done();
-            });
-        });
-
-        it('fails on bad receiveTimestamp', (done) => {
-
-            messup([[32, 0x83], [33, 0xaa], [34, 0x7e], [35, 0x80], [36, 0], [37, 0], [38, 0], [39, 0]]);
+            messup([[24, 0x83], [25, 0xaa], [26, 0x7e], [27, 0x80], [28, 0], [29, 0], [30, 0], [31, 0]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -212,9 +200,21 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad originate timestamp and alarm li', (done) => {
+        it('fails on bad receiveTimestamp', (done, onCleanup) => {
 
-            messup([[0, (3 << 6) + (4 << 3) + (4 << 0)]]);
+            messup([[32, 0x83], [33, 0xaa], [34, 0x7e], [35, 0x80], [36, 0], [37, 0], [38, 0], [39, 0]], onCleanup);
+
+            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
+
+                expect(err).to.exist();
+                expect(err.message).to.equal('Invalid server response');
+                done();
+            });
+        });
+
+        it('fails on bad originate timestamp and alarm li', (done, onCleanup) => {
+
+            messup([[0, (3 << 6) + (4 << 3) + (4 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -225,9 +225,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('returns time with death stratum and last61 li', (done) => {
+        it('returns time with death stratum and last61 li', (done, onCleanup) => {
 
-            messup([[0, (1 << 6) + (4 << 3) + (4 << 0)], [1, 0]]);
+            messup([[0, (1 << 6) + (4 << 3) + (4 << 0)], [1, 0]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -238,9 +238,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('returns time with reserved stratum and last59 li', (done) => {
+        it('returns time with reserved stratum and last59 li', (done, onCleanup) => {
 
-            messup([[0, (2 << 6) + (4 << 3) + (4 << 0)], [1, 0x1f]]);
+            messup([[0, (2 << 6) + (4 << 3) + (4 << 0)], [1, 0x1f]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -251,9 +251,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad mode (symmetric-active)', (done) => {
+        it('fails on bad mode (symmetric-active)', (done, onCleanup) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (1 << 0)]]);
+            messup([[0, (0 << 6) + (4 << 3) + (1 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -263,9 +263,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad mode (symmetric-passive)', (done) => {
+        it('fails on bad mode (symmetric-passive)', (done, onCleanup) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (2 << 0)]]);
+            messup([[0, (0 << 6) + (4 << 3) + (2 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -275,9 +275,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad mode (client)', (done) => {
+        it('fails on bad mode (client)', (done, onCleanup) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (3 << 0)]]);
+            messup([[0, (0 << 6) + (4 << 3) + (3 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -287,9 +287,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad mode (broadcast)', (done) => {
+        it('fails on bad mode (broadcast)', (done, onCleanup) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (5 << 0)]]);
+            messup([[0, (0 << 6) + (4 << 3) + (5 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
@@ -299,9 +299,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('fails on bad mode (reserved)', (done) => {
+        it('fails on bad mode (reserved)', (done, onCleanup) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (6 << 0)]]);
+            messup([[0, (0 << 6) + (4 << 3) + (6 << 0)]], onCleanup);
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
