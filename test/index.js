@@ -383,7 +383,19 @@ describe('SNTP', () => {
 
     describe('now()', () => {
 
-        it('starts auto-sync, gets now, then stops', (done) => {
+        it('starts auto-sync, gets now, then stops', { parallel: false }, (done, onCleanup) => {
+
+            const orig = Date.now;
+            Date.now = () => {
+
+                return orig() - 1;
+            };
+
+            onCleanup((next) => {
+
+                Date.now = orig;
+                return next();
+            });
 
             Sntp.stop();
 
