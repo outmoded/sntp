@@ -340,7 +340,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('gets the new offset on different server', (done) => {
+        it('gets the new offset on different server (host)', (done) => {
 
             Sntp.offset((err, offset1) => {
 
@@ -356,7 +356,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('gets the new offset on different server', (done) => {
+        it('gets the new offset on different server (port)', (done) => {
 
             Sntp.offset((err, offset1) => {
 
