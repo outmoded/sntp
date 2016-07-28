@@ -231,7 +231,7 @@ describe('SNTP', () => {
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
-                expect(err).to.not.exist();
+                expect(err).to.exist();
                 expect(time.stratum).to.equal('death');
                 expect(time.leapIndicator).to.equal('last-minute-61');
                 done();
@@ -244,7 +244,7 @@ describe('SNTP', () => {
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
-                expect(err).to.not.exist();
+                expect(err).to.exist();
                 expect(time.stratum).to.equal('reserved');
                 expect(time.leapIndicator).to.equal('last-minute-59');
                 done();
