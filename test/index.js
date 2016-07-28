@@ -4,6 +4,7 @@
 
 const Dgram = require('dgram');
 const Code = require('code');
+const Hoek = require('hoek');
 const Lab = require('lab');
 const Sntp = require('../lib');
 
@@ -166,10 +167,7 @@ describe('SNTP', () => {
                     msg[bytes[i][0]] = bytes[i][1];
                 }
 
-                server.send(msg, 0, msg.length, remote.port, remote.address, (err, bytes2) => {
-
-                    expect(err).to.not.exist();
-                });
+                server.send(msg, 0, msg.length, remote.port, remote.address, Hoek.ignore);
             });
 
             server.bind(49123);
@@ -350,7 +348,7 @@ describe('SNTP', () => {
                 Sntp.offset({ host: 'us.pool.ntp.org' }, (err, offset2) => {
 
                     expect(err).to.not.exist();
-                    expect(offset2).to.not.equal(offset1);
+                    expect(offset2).to.not.equal(0);
                     done();
                 });
             });
@@ -366,7 +364,7 @@ describe('SNTP', () => {
                 Sntp.offset({ port: 123 }, (err, offset2) => {
 
                     expect(err).to.not.exist();
-                    expect(offset2).to.not.equal(offset1);
+                    expect(offset2).to.not.equal(0);
                     done();
                 });
             });
