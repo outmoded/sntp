@@ -14,12 +14,12 @@ const internals = {};
 
 Sntp.offset((err, offset1) => {
 
-    console.log(offset1);                    // New (served fresh)
+    console.log(err, offset1);                    // New (served fresh)
 
     // Request offset again
 
     Sntp.offset((err, offset2) => {
 
-        console.log(offset2);                // Identical (served from cache)
+        console.log(err, offset2);                // Identical (served from cache)
     });
 });

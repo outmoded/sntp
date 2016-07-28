@@ -126,6 +126,7 @@ describe('SNTP', () => {
                 const msg = new Buffer(10);
                 server.send(msg, 0, msg.length, remote.port, remote.address, (err, bytes) => {
 
+                    expect(err).to.not.exist();
                     server.close();
                 });
             });
@@ -166,6 +167,7 @@ describe('SNTP', () => {
 
                 server.send(msg, 0, msg.length, remote.port, remote.address, (err, bytes2) => {
 
+                    expect(err).to.not.exist();
                     server.close();
                 });
             });
@@ -229,6 +231,7 @@ describe('SNTP', () => {
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
+                expect(err).to.not.exist();
                 expect(time.stratum).to.equal('death');
                 expect(time.leapIndicator).to.equal('last-minute-61');
                 done();
@@ -241,6 +244,7 @@ describe('SNTP', () => {
 
             Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
 
+                expect(err).to.not.exist();
                 expect(time.stratum).to.equal('reserved');
                 expect(time.leapIndicator).to.equal('last-minute-59');
                 done();
