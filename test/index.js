@@ -126,10 +126,7 @@ describe('SNTP', () => {
             server.on('message', (message, remote) => {
 
                 const msg = new Buffer(10);
-                server.send(msg, 0, msg.length, remote.port, remote.address, (err, bytes) => {
-
-                    expect(err).to.not.exist();
-                });
+                server.send(msg, 0, msg.length, remote.port, remote.address, Hoek.ignore);
             });
 
             server.bind(49123);
