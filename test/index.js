@@ -307,6 +307,21 @@ describe('SNTP', () => {
         });
     });
 
+    const skew = (onCleanup) => {
+
+        const orig = Date.now;
+        Date.now = () => {
+
+            return orig() - 5;
+        };
+
+        onCleanup((next) => {
+
+            Date.now = orig;
+            return next();
+        });
+    };
+
     describe('offset()', () => {
 
         it('gets the current offset', (done) => {
@@ -335,7 +350,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('gets the new offset on different server (host)', (done) => {
+        it('gets the new offset on different server (host)', { parallel: false }, (done, onCleanup) => {
+
+            skew(onCleanup);
 
             Sntp.offset((err, offset1) => {
 
@@ -351,7 +368,9 @@ describe('SNTP', () => {
             });
         });
 
-        it('gets the new offset on different server (port)', (done) => {
+        it('gets the new offset on different server (port)', { parallel: false }, (done, onCleanup) => {
+
+            skew(onCleanup);
 
             Sntp.offset((err, offset1) => {
 
@@ -382,18 +401,7 @@ describe('SNTP', () => {
 
         it('starts auto-sync, gets now, then stops', { parallel: false }, (done, onCleanup) => {
 
-            const orig = Date.now;
-            Date.now = () => {
-
-                return orig() - 1;
-            };
-
-            onCleanup((next) => {
-
-                Date.now = orig;
-                return next();
-            });
-
+            skew(onCleanup);
             Sntp.stop();
 
             const before = Sntp.now();
@@ -411,18 +419,7 @@ describe('SNTP', () => {
 
         it('starts twice', { parallel: false }, (done, onCleanup) => {
 
-            const orig = Date.now;
-            Date.now = () => {
-
-                return orig() - 1;
-            };
-
-            onCleanup((next) => {
-
-                Date.now = orig;
-                return next();
-            });
-
+            skew(onCleanup);
             Sntp.stop();
 
             Sntp.start(() => {
