@@ -8,6 +8,7 @@ const Code = require('code');
 const Hoek = require('hoek');
 const Lab = require('lab');
 const Sntp = require('../lib');
+const Teamwork = require('teamwork');
 
 
 // Declare internals
@@ -17,9 +18,7 @@ const internals = {};
 
 // Test shortcuts
 
-const lab = exports.lab = Lab.script();
-const describe = lab.describe;
-const it = lab.it;
+const { describe, it } = exports.lab = Lab.script();
 const expect = Code.expect;
 
 
@@ -33,48 +32,31 @@ describe('SNTP', () => {
 
     describe('time()', () => {
 
-        it('returns consistent result over multiple tries', (done) => {
+        it('returns consistent result over multiple tries', async () => {
 
-            Sntp.time((err, time1) => {
+            const time1 = await Sntp.time();
+            expect(time1).to.exist();
+            const t1 = time1.t;
 
-                expect(err).to.not.exist();
-                expect(time1).to.exist();
-                const t1 = time1.t;
-
-                Sntp.time((err, time2) => {
-
-                    expect(err).to.not.exist();
-                    expect(time2).to.exist();
-                    const t2 = time2.t;
-                    expect(Math.abs(t1 - t2)).to.be.below(200);
-                    done();
-                });
-            });
+            const time2 = await Sntp.time();
+            expect(time2).to.exist();
+            const t2 = time2.t;
+            expect(Math.abs(t1 - t2)).to.be.below(200);
         });
 
-        it('resolves reference IP', (done) => {
+        it('resolves reference IP', async () => {
 
-            Sntp.time({ host: 'ntp.exnet.com', resolveReference: true }, (err, time) => {
-
-                expect(err).to.not.exist();
-                expect(time).to.exist();
-                expect(time.referenceHost).to.exist();
-                done();
-            });
+            const time = await Sntp.time({ host: 'ntp.exnet.com', resolveReference: true });
+            expect(time).to.exist();
+            expect(time.referenceHost).to.exist();
         });
 
-        it('times out on no response', (done) => {
+        it('times out on no response', async () => {
 
-            Sntp.time({ port: 124, timeout: 100 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time).to.not.exist();
-                expect(err.message).to.equal('Timeout');
-                done();
-            });
+            await expect(Sntp.time({ port: 124, timeout: 100 })).to.reject('Timeout');
         });
 
-        it('errors on error event', (done) => {
+        it('errors on error event', async () => {
 
             const orig = Dgram.createSocket;
             Dgram.createSocket = function (type) {
@@ -88,16 +70,10 @@ describe('SNTP', () => {
                 return socket;
             };
 
-            Sntp.time((err, time) => {
-
-                expect(err).to.exist();
-                expect(time).to.not.exist();
-                expect(err.message).to.equal('Fake');
-                done();
-            });
+            await expect(Sntp.time()).to.reject('Fake');
         });
 
-        it('errors on incorrect sent size', (done) => {
+        it('errors on incorrect sent size', async () => {
 
             const orig = Dgram.Socket.prototype.send;
             Dgram.Socket.prototype.send = function (buf, offset, length, port, address, callback) {
@@ -106,30 +82,18 @@ describe('SNTP', () => {
                 return callback(null, 40);
             };
 
-            Sntp.time((err, time) => {
-
-                expect(err).to.exist();
-                expect(time).to.not.exist();
-                expect(err.message).to.equal('Could not send entire message');
-                done();
-            });
+            await expect(Sntp.time()).to.reject('Could not send entire message');
         });
 
-        it('times out on invalid host', (done) => {
+        it('times out on invalid host', async () => {
 
-            Sntp.time({ host: 'no-such-hostname' }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time).to.not.exist();
-                expect(err.message).to.contain('getaddrinfo');
-                done();
-            });
+            await expect(Sntp.time({ host: 'no-such-hostname' })).to.reject(/getaddrinfo/);
         });
 
-        it('fails on bad response buffer size', (done, onCleanup) => {
+        it('fails on bad response buffer size', async (flags) => {
 
             const server = Dgram.createSocket('udp4');
-            onCleanup((next) => server.close(next));
+            flags.onCleanup = (next) => server.close(next);
             server.on('message', (message, remote) => {
 
                 const msg = new Buffer(10);
@@ -138,18 +102,13 @@ describe('SNTP', () => {
 
             server.bind(49123);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(err.message).to.equal('Invalid server response');
-                done();
-            });
+            await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject('Invalid server response');
         });
 
-        const messup = function (bytes, onCleanup) {
+        const messup = function (bytes, flags) {
 
             const server = Dgram.createSocket('udp4');
-            onCleanup((next) => server.close(next));
+            flags.onCleanup = (next) => server.close(next);
             server.on('message', (message, remote) => {
 
                 const msg = new Buffer([
@@ -177,290 +136,227 @@ describe('SNTP', () => {
             server.bind(49123);
         };
 
-        it('fails on bad version', (done, onCleanup) => {
+        it('fails on bad version', async (flags) => {
 
-            messup([[0, (0 << 6) + (3 << 3) + (4 << 0)]], onCleanup);
+            messup([[0, (0 << 6) + (3 << 3) + (4 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.version).to.equal(3);
-                expect(err.message).to.equal('Invalid server response');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject('Invalid server response');
+            expect(err.time.version).to.equal(3);
         });
 
-        it('fails on bad originateTimestamp', (done, onCleanup) => {
+        it('fails on bad originateTimestamp', async (flags) => {
 
-            messup([[24, 0x83], [25, 0xaa], [26, 0x7e], [27, 0x80], [28, 0], [29, 0], [30, 0], [31, 0]], onCleanup);
+            messup([[24, 0x83], [25, 0xaa], [26, 0x7e], [27, 0x80], [28, 0], [29, 0], [30, 0], [31, 0]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(err.message).to.equal('Invalid server response');
-                done();
-            });
+            await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject('Invalid server response');
         });
 
-        it('fails on bad receiveTimestamp', (done, onCleanup) => {
+        it('fails on bad receiveTimestamp', async (flags) => {
 
-            messup([[32, 0x83], [33, 0xaa], [34, 0x7e], [35, 0x80], [36, 0], [37, 0], [38, 0], [39, 0]], onCleanup);
+            messup([[32, 0x83], [33, 0xaa], [34, 0x7e], [35, 0x80], [36, 0], [37, 0], [38, 0], [39, 0]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(err.message).to.equal('Invalid server response');
-                done();
-            });
+            await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject('Invalid server response');
         });
 
-        it('fails on bad originate timestamp and alarm li', (done, onCleanup) => {
+        it('fails on bad originate timestamp and alarm li', async (flags) => {
 
-            messup([[0, (3 << 6) + (4 << 3) + (4 << 0)]], onCleanup);
+            messup([[0, (3 << 6) + (4 << 3) + (4 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(err.message).to.equal('Wrong originate timestamp');
-                expect(time.leapIndicator).to.equal('alarm');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject('Wrong originate timestamp');
+            expect(err.time.leapIndicator).to.equal('alarm');
         });
 
-        it('returns time with death stratum and last61 li', (done, onCleanup) => {
+        it('returns time with death stratum and last61 li', async (flags) => {
 
-            messup([[0, (1 << 6) + (4 << 3) + (4 << 0)], [1, 0]], onCleanup);
+            messup([[0, (1 << 6) + (4 << 3) + (4 << 0)], [1, 0]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.stratum).to.equal('death');
-                expect(time.leapIndicator).to.equal('last-minute-61');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.stratum).to.equal('death');
+            expect(err.time.leapIndicator).to.equal('last-minute-61');
         });
 
-        it('returns time with reserved stratum and last59 li', (done, onCleanup) => {
+        it('returns time with reserved stratum and last59 li', async (flags) => {
 
-            messup([[0, (2 << 6) + (4 << 3) + (4 << 0)], [1, 0x1f]], onCleanup);
+            messup([[0, (2 << 6) + (4 << 3) + (4 << 0)], [1, 0x1f]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.stratum).to.equal('reserved');
-                expect(time.leapIndicator).to.equal('last-minute-59');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.stratum).to.equal('reserved');
+            expect(err.time.leapIndicator).to.equal('last-minute-59');
         });
 
-        it('fails on bad mode (symmetric-active)', (done, onCleanup) => {
+        it('fails on bad mode (symmetric-active)', async (flags) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (1 << 0)]], onCleanup);
+            messup([[0, (0 << 6) + (4 << 3) + (1 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.mode).to.equal('symmetric-active');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.mode).to.equal('symmetric-active');
         });
 
-        it('fails on bad mode (symmetric-passive)', (done, onCleanup) => {
+        it('fails on bad mode (symmetric-passive)', async (flags) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (2 << 0)]], onCleanup);
+            messup([[0, (0 << 6) + (4 << 3) + (2 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.mode).to.equal('symmetric-passive');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.mode).to.equal('symmetric-passive');
         });
 
-        it('fails on bad mode (client)', (done, onCleanup) => {
+        it('fails on bad mode (client)', async (flags) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (3 << 0)]], onCleanup);
+            messup([[0, (0 << 6) + (4 << 3) + (3 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.mode).to.equal('client');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.mode).to.equal('client');
         });
 
-        it('fails on bad mode (broadcast)', (done, onCleanup) => {
+        it('fails on bad mode (broadcast)', async (flags) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (5 << 0)]], onCleanup);
+            messup([[0, (0 << 6) + (4 << 3) + (5 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.mode).to.equal('broadcast');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.mode).to.equal('broadcast');
         });
 
-        it('fails on bad mode (reserved)', (done, onCleanup) => {
+        it('fails on bad mode (reserved)', async (flags) => {
 
-            messup([[0, (0 << 6) + (4 << 3) + (6 << 0)]], onCleanup);
+            messup([[0, (0 << 6) + (4 << 3) + (6 << 0)]], flags);
 
-            Sntp.time({ host: 'localhost', port: 49123 }, (err, time) => {
-
-                expect(err).to.exist();
-                expect(time.mode).to.equal('reserved');
-                done();
-            });
+            const err = await expect(Sntp.time({ host: 'localhost', port: 49123 })).to.reject();
+            expect(err.time.mode).to.equal('reserved');
         });
     });
 
     describe('offset()', () => {
 
-        it('gets the current offset', (done) => {
+        it('gets the current offset', async () => {
 
-            Sntp.offset((err, offset) => {
-
-                expect(err).to.not.exist();
-                expect(offset).to.not.equal(0);
-                done();
-            });
+            const offset = await Sntp.offset();
+            expect(offset).to.not.equal(0);
         });
 
-        it('gets the current offset from cache', (done) => {
+        it('gets the current offset from cache', async () => {
 
-            Sntp.offset((err, offset1) => {
+            const offset1 = await Sntp.offset();
+            expect(offset1).to.not.equal(0);
 
-                expect(err).to.not.exist();
-                expect(offset1).to.not.equal(0);
-
-                Sntp.offset({}, (err, offset2) => {
-
-                    expect(err).to.not.exist();
-                    expect(offset2).to.equal(offset1);
-                    done();
-                });
-            });
+            const offset2 = await Sntp.offset({});
+            expect(offset2).to.equal(offset1);
         });
 
-        it('gets the new offset on different server (host)', (done, onCleanup) => {
+        it('gets the new offset on different server (host)', async (flags) => {
 
-            Sntp.offset((err, offset1) => {
+            const offset1 = await Sntp.offset();
+            expect(offset1).to.not.equal(0);
 
-                expect(err).to.not.exist();
-                expect(offset1).to.not.equal(0);
-
-                Sntp.offset({ host: 'time2.google.com' }, (err, offset2) => {
-
-                    expect(err).to.not.exist();
-                    expect(offset2).to.not.equal(0);
-                    done();
-                });
-            });
+            const offset2 = await Sntp.offset({ host: 'us.pool.ntp.org' });
+            expect(offset2).to.not.equal(0);
         });
 
-        it('gets the new offset on different server (port)', (done, onCleanup) => {
+        it('gets the new offset on different server (port)', async (flags) => {
 
-            Sntp.offset((err, offset1) => {
+            const offset1 = await Sntp.offset();
+            expect(offset1).to.not.equal(0);
 
-                expect(err).to.not.exist();
-                expect(offset1).to.not.equal(0);
-
-                Sntp.offset({ port: 123 }, (err, offset2) => {
-
-                    expect(err).to.not.exist();
-                    expect(offset2).to.not.equal(0);
-                    done();
-                });
-            });
+            const offset2 = await Sntp.offset({ port: 123 });
+            expect(offset2).to.not.equal(0);
         });
 
-        it('fails getting the current offset on invalid server', (done) => {
+        it('fails getting the current offset on invalid server', async () => {
 
-            Sntp.offset({ host: 'no-such-host-error', timeout: 100 }, (err, offset) => {
-
-                expect(err).to.exist();
-                expect(offset).to.equal(0);
-                done();
-            });
+            await expect(Sntp.offset({ host: 'no-such-host-error', timeout: 100 })).to.reject();
         });
     });
 
     describe('start()', () => {
 
-        it('returns error', (done, onCleanup) => {
+        it('returns error (direct)', async (flags) => {
 
             Sntp.stop();
 
+            await expect(Sntp.start({ host: 'no-such-host-error', onError: Hoek.ignore, timeout: 10 })).to.reject();
+            Sntp.stop();
+        });
+
+        it('returns error (handler)', async (flags) => {
+
+            Sntp.stop();
+
+            const team = new Teamwork();
             const onError = (err) => {
 
                 expect(err).to.be.an.error();
                 Sntp.stop();
-                done();
+                team.attend();
             };
 
-            Sntp.start({ host: 'no-such-host-error', onError }, () => {
+            const orig = Sntp.offset;
+            Sntp.offset = () => {
 
-                Sntp.start(Hoek.ignore);
-            });
+                Sntp.offset = orig;
+            };
+
+            await Sntp.start({ host: 'no-such-host-error', onError, clockSyncRefresh: 100, timeout: 10 });
+            await team.work;
+        });
+
+        it('ignores errors', async (flags) => {
+
+            Sntp.stop();
+
+            const orig = Sntp.offset;
+            Sntp.offset = () => {
+
+                Sntp.offset = orig;
+            };
+
+            await expect(Sntp.start({ host: 'no-such-host-error', clockSyncRefresh: 100, timeout: 10 })).to.not.reject();
+            await Hoek.wait(110);
         });
     });
 
     describe('now()', () => {
 
-        it('starts auto-sync, gets now, then stops', (done, onCleanup) => {
+        it('starts auto-sync, gets now, then stops', async (flags) => {
 
             Sntp.stop();
 
             const before = Sntp.now();
             expect(before).to.be.about(Date.now(), 5);
 
-            Sntp.start(() => {
-
-                const now = Sntp.now();
-                expect(now).to.not.equal(Date.now());
-                Sntp.stop();
-
-                done();
-            });
+            await Sntp.start();
+            const now = Sntp.now();
+            expect(now).to.not.equal(Date.now());
+            Sntp.stop();
         });
 
-        it('starts twice', (done, onCleanup) => {
+        it('starts twice', async (flags) => {
 
             Sntp.stop();
 
-            Sntp.start(() => {
+            await Sntp.start();
+            await Sntp.start();
 
-                Sntp.start(() => {
-
-                    const now = Sntp.now();
-                    expect(now).to.not.equal(Date.now());
-                    Sntp.stop();
-
-                    done();
-                });
-            });
+            const now = Sntp.now();
+            expect(now).to.not.equal(Date.now());
+            Sntp.stop();
         });
 
-        it('starts auto-sync, gets now, waits, gets again after timeout', (done) => {
+        it('starts auto-sync, gets now, waits, gets again after timeout', async () => {
 
             Sntp.stop();
 
             const before = Sntp.now();
             expect(before).to.be.about(Date.now(), 5);
 
-            Sntp.start({ clockSyncRefresh: 100 }, () => {
+            await Sntp.start({ clockSyncRefresh: 100 });
 
-                const now = Sntp.now();
-                expect(now).to.not.equal(Date.now());
-                expect(now).to.be.about(Sntp.now(), 5);
+            const now = Sntp.now();
+            expect(now).to.not.equal(Date.now());
+            expect(now).to.be.about(Sntp.now(), 5);
 
-                setTimeout(() => {
+            await Hoek.wait(110);
 
-                    expect(Sntp.now()).to.not.equal(now);
-                    Sntp.stop();
-                    done();
-                }, 110);
-            });
+            expect(Sntp.now()).to.not.equal(now);
+            Sntp.stop();
         });
     });
 });
