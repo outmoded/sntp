@@ -3,6 +3,7 @@
 // Load modules
 
 const Dgram = require('dgram');
+
 const Code = require('code');
 const Hoek = require('hoek');
 const Lab = require('lab');
@@ -116,7 +117,7 @@ describe('SNTP', () => {
 
         it('times out on invalid host', (done) => {
 
-            Sntp.time({ host: 'error', timeout: 10000 }, (err, time) => {
+            Sntp.time({ host: 'no-such-hostname' }, (err, time) => {
 
                 expect(err).to.exist();
                 expect(time).to.not.exist();
@@ -348,7 +349,7 @@ describe('SNTP', () => {
                 expect(err).to.not.exist();
                 expect(offset1).to.not.equal(0);
 
-                Sntp.offset({ host: 'us.pool.ntp.org' }, (err, offset2) => {
+                Sntp.offset({ host: 'time2.google.com' }, (err, offset2) => {
 
                     expect(err).to.not.exist();
                     expect(offset2).to.not.equal(0);
@@ -375,7 +376,7 @@ describe('SNTP', () => {
 
         it('fails getting the current offset on invalid server', (done) => {
 
-            Sntp.offset({ host: 'error' }, (err, offset) => {
+            Sntp.offset({ host: 'no-such-host-error', timeout: 100 }, (err, offset) => {
 
                 expect(err).to.exist();
                 expect(offset).to.equal(0);

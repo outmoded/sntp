@@ -1,7 +1,7 @@
 {
   "name": "sntp",
   "description": "SNTP Client",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "author": "Eran Hammer <eran@hammer.io> (http://hueniverse.com)",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "code": "4.x.x",
-    "lab": "10.x.x"
+    "lab": "14.x.x"
   },
   "scripts": {
     "test": "lab -a code -t 100 -L -m 20000",
