@@ -74,7 +74,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('errors on error event', { parallel: false }, (done) => {
+        it('errors on error event', (done) => {
 
             const orig = Dgram.createSocket;
             Dgram.createSocket = function (type) {
@@ -97,7 +97,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('errors on incorrect sent size', { parallel: false }, (done) => {
+        it('errors on incorrect sent size', (done) => {
 
             const orig = Dgram.Socket.prototype.send;
             Dgram.Socket.prototype.send = function (buf, offset, length, port, address, callback) {
@@ -342,7 +342,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('gets the new offset on different server (host)', { parallel: false }, (done, onCleanup) => {
+        it('gets the new offset on different server (host)', (done, onCleanup) => {
 
             Sntp.offset((err, offset1) => {
 
@@ -358,7 +358,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('gets the new offset on different server (port)', { parallel: false }, (done, onCleanup) => {
+        it('gets the new offset on different server (port)', (done, onCleanup) => {
 
             Sntp.offset((err, offset1) => {
 
@@ -385,9 +385,29 @@ describe('SNTP', () => {
         });
     });
 
+    describe('start()', () => {
+
+        it('returns error', (done, onCleanup) => {
+
+            Sntp.stop();
+
+            const onError = (err) => {
+
+                expect(err).to.be.an.error();
+                Sntp.stop();
+                done();
+            };
+
+            Sntp.start({ host: 'no-such-host-error', onError }, () => {
+
+                Sntp.start(Hoek.ignore);
+            });
+        });
+    });
+
     describe('now()', () => {
 
-        it('starts auto-sync, gets now, then stops', { parallel: false }, (done, onCleanup) => {
+        it('starts auto-sync, gets now, then stops', (done, onCleanup) => {
 
             Sntp.stop();
 
@@ -404,7 +424,7 @@ describe('SNTP', () => {
             });
         });
 
-        it('starts twice', { parallel: false }, (done, onCleanup) => {
+        it('starts twice', (done, onCleanup) => {
 
             Sntp.stop();
 
