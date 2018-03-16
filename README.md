@@ -22,16 +22,20 @@ var options = {
 
 // Request server time
 
-Sntp.time(options, function (err, time) {
+const exec = async function () {
 
-    if (err) {
+    try {
+        const time = await Sntp.time(options);
+        console.log('Local clock is off by: ' + time.t + ' milliseconds');
+        process.exit(0);
+    }
+    catch (err) {
         console.log('Failed: ' + err.message);
         process.exit(1);
     }
+};
 
-    console.log('Local clock is off by: ' + time.t + ' milliseconds');
-    process.exit(0);
-});
+exec();
 ```
 
 If an application needs to maintain continuous time synchronization, the module provides a stateful method for
@@ -40,17 +44,18 @@ querying the current offset only when the last one is too old (defaults to daily
 ```javascript
 // Request offset once
 
-Sntp.offset(function (err, offset) {
+const exec = async function () {
 
-    console.log(offset);                    // New (served fresh)
+    const offset1 = await Sntp.offset();
+    console.log(offset1);                   // New (served fresh)
 
     // Request offset again
 
-    Sntp.offset(function (err, offset) {
+    const offset2 = await Sntp.offset();
+    console.log(offset2);                   // Identical (served from cache)
+};
 
-        console.log(offset);                // Identical (served from cache)
-    });
-});
+exec();
 ```
 
 To set a background offset refresh, start the interval and use the provided now() method. If for any reason the
@@ -59,10 +64,12 @@ client fails to obtain an up-to-date offset, the current system clock is used.
 ```javascript
 var before = Sntp.now();                    // System time without offset
 
-Sntp.start(function () {
+const exec = async function () {
 
+    await Sntp.start();
     var now = Sntp.now();                   // With offset
     Sntp.stop();
-});
-```
+};
 
+exec();
+```
