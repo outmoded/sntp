@@ -96,7 +96,7 @@ describe('SNTP', () => {
             flags.onCleanup = (next) => server.close(next);
             server.on('message', (message, remote) => {
 
-                const msg = new Buffer(10);
+                const msg = Buffer.alloc(10);
                 server.send(msg, 0, msg.length, remote.port, remote.address, Hoek.ignore);
             });
 
@@ -111,7 +111,7 @@ describe('SNTP', () => {
             flags.onCleanup = (next) => server.close(next);
             server.on('message', (message, remote) => {
 
-                const msg = new Buffer([
+                const msg = Buffer.from([
                     0x24, 0x01, 0x00, 0xe3,
                     0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00,
