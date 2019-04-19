@@ -6,16 +6,16 @@ An SNTP v4 client (RFC4330) for node. Simpy connects to the NTP or SNTP server r
 along with the roundtrip duration and clock offset. To adjust the local time to the NTP time, add the returned `t` offset
 to the local time.
 
-[![Build Status](https://secure.travis-ci.org/hueniverse/sntp.png)](http://travis-ci.org/hueniverse/sntp)
+[![Build Status](https://secure.travis-ci.org/hapijs/sntp.svg?branch=master)](http://travis-ci.org/hapijs/sntp)
 
 # Usage
 
 ```javascript
-var Sntp = require('sntp');
+const Sntp = require('@hapi/sntp');
 
 // All options are optional
 
-var options = {
+const options = {
     host: 'nist1-sj.ustiming.org',  // Defaults to pool.ntp.org
     port: 123,                      // Defaults to 123 (NTP)
     resolveReference: true,         // Default to false (not resolving)
@@ -64,12 +64,12 @@ To set a background offset refresh, start the interval and use the provided now(
 client fails to obtain an up-to-date offset, the current system clock is used.
 
 ```javascript
-var before = Sntp.now();                    // System time without offset
+const before = Sntp.now();                    // System time without offset
 
 const exec = async function () {
 
     await Sntp.start();
-    var now = Sntp.now();                   // With offset
+    const now = Sntp.now();                   // With offset
     Sntp.stop();
 };
 
