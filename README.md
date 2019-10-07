@@ -11,6 +11,6 @@
 ## Useful resources
 
 - [Documentation and API](https://hapi.dev/family/sntp/)
-- [Versions status](https://hapi.dev/resources/status/#sntp)
+- [Versions status](https://hapi.dev/resources/status/#sntp) (builds, dependencies, node versions, licenses, eol)
 - [Project policies](https://hapi.dev/policies/)
 - [Free and commercial support options](https://hapi.dev/support/)
