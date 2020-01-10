@@ -1,7 +1,7 @@
 {
   "name": "@hapi/sntp",
   "description": "SNTP Client",
-  "version": "3.1.2",
+  "version": "4.0.0",
   "repository": "git://github.com/hapijs/sntp",
   "main": "lib/index.js",
   "files": [
