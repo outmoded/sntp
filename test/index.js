@@ -236,7 +236,7 @@ describe('SNTP', () => {
             expect(offset2).to.equal(offset1);
         });
 
-        it('gets the new offset on different server (host)', async (flags) => {
+        it('gets the new offset on different server (host)', { retry: true }, async (flags) => {
 
             const offset1 = await Sntp.offset();
             expect(offset1).to.not.equal(0);
