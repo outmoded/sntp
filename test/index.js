@@ -274,7 +274,7 @@ describe('SNTP', () => {
 
             Sntp.stop();
 
-            const team = new Teamwork();
+            const team = new Teamwork.Team();
             const onError = (err) => {
 
                 expect(err).to.be.an.error();
